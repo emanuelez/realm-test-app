@@ -2,16 +2,35 @@ package io.realm.testapp;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import io.realm.Realm;
+import io.realm.testapp.models.Dog;
+import io.realm.testapp.models.Person;
+
 
 public class MyActivity extends Activity {
+
+    private static final String TAG = "RealmTest";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_my);
+
+        Realm.deleteRealmFile(this);
+        Realm realm = Realm.getInstance(this);
+        realm.beginTransaction();
+        Dog dog = realm.createObject(Dog.class);
+        dog.setName("White Fang");
+        Person person = realm.createObject(Person.class);
+        person.setName("Gray Beaver");
+        person.getDogs().add(dog);
+        realm.commitTransaction();
+
+        Log.i(TAG, person.toString());
     }
 
 

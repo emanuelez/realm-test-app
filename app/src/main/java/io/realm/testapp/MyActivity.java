@@ -2,16 +2,83 @@ package io.realm.testapp;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import io.realm.Realm;
+import io.realm.testapp.tasks.Deleter;
+import io.realm.testapp.tasks.Inserter;
+import io.realm.testapp.tasks.Updater;
+
 
 public class MyActivity extends Activity {
+
+    public static final int RECORDS = 10000;
+    public static final int THREADS = 1;
+
+    private static final String TAG = MyActivity.class.getName();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_my);
+
+        // Cleanup
+        Realm.deleteRealmFile(this);
+
+        // Inserts
+        Log.i(TAG, "Start Inserts");
+        ExecutorService InsertTasksExecutor = Executors.newFixedThreadPool(THREADS);
+        long tic = System.currentTimeMillis();
+        for (int i = 0; i < THREADS; i++) {
+            InsertTasksExecutor.execute(new Inserter(this));
+        }
+        InsertTasksExecutor.shutdown();
+        try {
+            InsertTasksExecutor.awaitTermination(1, TimeUnit.MINUTES);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        long toc = System.currentTimeMillis();
+        Log.i(TAG, "Insert time: " + (toc - tic));
+
+        // Updates
+        Log.i(TAG, "Start Updates");
+        ExecutorService UpdateTasksExecutor = Executors.newFixedThreadPool(THREADS);
+        tic = System.currentTimeMillis();
+        for (int i = 0; i < THREADS; i++) {
+            UpdateTasksExecutor.execute(new Updater(this));
+        }
+        UpdateTasksExecutor.shutdown();
+        try {
+            UpdateTasksExecutor.awaitTermination(1, TimeUnit.MINUTES);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        toc = System.currentTimeMillis();
+        Log.i(TAG, "Update time: " + (toc - tic));
+
+        // Deletes
+        Log.i(TAG, "Start Deletes");
+        ExecutorService DeleteTasksExecutor = Executors.newFixedThreadPool(THREADS);
+        tic = System.currentTimeMillis();
+        for (int i = 0; i < THREADS; i++) {
+            DeleteTasksExecutor.execute(new Deleter(this));
+        }
+        DeleteTasksExecutor.shutdown();
+        try {
+            DeleteTasksExecutor.awaitTermination(1, TimeUnit.MINUTES);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        toc = System.currentTimeMillis();
+        Log.i(TAG, "Delete time: " + (toc - tic));
+
     }
 
 
